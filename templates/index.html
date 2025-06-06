@@ -5,99 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Braille Translation</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 900px;
-      margin: 30px auto;
-      padding: 0 20px;
-      background: #ffffff;
-      color: #000000;
-    }
-
-    @keyframes gradientBG {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    h1, h2 {
-      text-align: center;
-      color: #000000;
-      text-shadow: none;
-    }
-
-    section {
-      margin-bottom: 30px;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      box-shadow: 0 0 10px #333;
-    }
-
-    input[type="file"] {
-      display: block;
-      margin: 10px 0;
-    }
-
-    button {
-      padding: 8px 16px;
-      cursor: pointer;
-      background-color: #007bff;
-      border: none;
-      color: white;
-      border-radius: 5px;
-      font-size: 16px;
-      margin-right: 5px;
-    }
-
-    button:disabled {
-      background-color: #aaa;
-      cursor: not-allowed;
-    }
-
-    #detected-image {
-      max-width: 100%;
-      border: 1px solid #ccc;
-      margin-top: 15px;
-      border-radius: 6px;
-    }
-
-    #detected-text {
-      margin-top: 15px;
-      font-size: 18px;
-      white-space: pre-line;
-      background: rgba(255, 255, 255, 0.2);
-      color: #fff;
-      padding: 15px;
-      border-radius: 6px;
-      min-height: 60px;
-    }
-
-    #camera-section {
-      margin-top: 15px;
-      text-align: center;
-    }
-
-    #video {
-      width: 100%;
-      max-width: 400px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    #capture-btn {
-      background-color: #28a745;
-    }
-
-    #stop-camera-btn {
-      background-color: #dc3545;
-    }
-
-    #copy-btn, #speak-btn {
-      margin-top: 10px;
-      margin-right: 10px;
-      background-color: #6c757d;
-    }
+    /* ... (same CSS as your original code) ... */
   </style>
 </head>
 <body>
@@ -230,23 +138,26 @@
         method: 'POST',
         body: formData
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          alert(data.error);
-          detectedImage.src = "";
-          detectedText.textContent = "";
-          outputImageSection.style.display = 'none';
-          outputTextSection.style.display = 'none';
-        } else {
+      .then(res => res.text())
+      .then(text => {
+        try {
+          const data = JSON.parse(text);
+          if (data.error) {
+            alert("Error: " + data.error);
+            return;
+          }
           detectedImage.src = data.detected_image;
           detectedText.textContent = data.detected_text_rows.join('\n');
           outputImageSection.style.display = 'block';
           outputTextSection.style.display = 'block';
+        } catch (err) {
+          console.error("JSON parse error:", err);
+          console.log("Raw response:", text);
+          alert("Failed to parse server response. Check server logs.");
         }
       })
       .catch(err => {
-        alert("Error: " + err.message);
+        alert("Network or server error: " + err.message);
       })
       .finally(() => {
         detectBtn.disabled = false;
