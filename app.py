@@ -2,12 +2,13 @@ import io
 import base64
 import numpy as np
 import cv2
+import traceback
 from PIL import Image
 from ultralytics import YOLO
 from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
-model = YOLO(r"best.pt")
+model = YOLO("best.pt")  # Replace with the actual path to your model
 
 def detect_braille(img_bytes):
     img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
@@ -34,14 +35,9 @@ def detect_braille(img_bytes):
     if not detections:
         return "", []
 
-    # Step 1: Sort detections by vertical position
     detections.sort(key=lambda d: d['y_center'])
-
-    # Step 2: Group into rows manually
-    row_thresh = 20  # Adjust this based on average line spacing
-    rows = []
-    current_row = []
-    last_y = -100
+    row_thresh = 20
+    rows, current_row, last_y = [], [], -100
 
     for det in detections:
         y = det['y_center']
@@ -52,19 +48,17 @@ def detect_braille(img_bytes):
             last_y = y
         else:
             current_row.append(det)
-            last_y = (last_y + y) // 2  # smooth the row height
+            last_y = (last_y + y) // 2
 
     if current_row:
         rows.append(current_row)
 
-    # Step 3: Sort each row left to right
     detected_text_rows = []
     for row in rows:
         sorted_row = sorted(row, key=lambda d: d['x_center'])
         row_labels = [d['label'] for d in sorted_row]
         detected_text_rows.append(''.join(row_labels))
 
-    # Step 4: Draw boxes and labels
     colors = [
         (0, 255, 0), (0, 0, 255), (255, 0, 0),
         (0, 255, 255), (255, 0, 255), (255, 255, 0),
@@ -102,7 +96,9 @@ def detect():
             'detected_text_rows': detected_text_rows
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print("🔥 Exception during detection:")
+        print(traceback.format_exc())
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
