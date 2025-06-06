@@ -1,0 +1,12 @@
+Flask==2.2.5
+torch==2.2.0
+torchvision==0.17.0
+numpy==1.26.4
+opencv-python==4.9.0.80
+Pillow==10.2.0
+matplotlib==3.8.4
+Werkzeug==3.0.1
+tensorflow==2.15.0
+ultralytics
+gunicorn
+flask-cors

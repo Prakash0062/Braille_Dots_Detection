@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Braille Translation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 20px;
+      background: linear-gradient(-45deg, #c0c0c0, #000000, #1a1a1a, #4d4d4d);
+      background-size: 400% 400%;
+      animation: gradientBG 12s ease infinite;
+      color: #f0f0f0;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #ffffff;
+      text-shadow: 1px 1px 3px #000;
+    }
+
+    section {
+      margin-bottom: 30px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      box-shadow: 0 0 10px #333;
+    }
+
+    input[type="file"] {
+      display: block;
+      margin: 10px 0;
+    }
+
+    button {
+      padding: 8px 16px;
+      cursor: pointer;
+      background-color: #007bff;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      font-size: 16px;
+      margin-right: 5px;
+    }
+
+    button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+
+    #detected-image {
+      max-width: 100%;
+      border: 1px solid #ccc;
+      margin-top: 15px;
+      border-radius: 6px;
+    }
+
+    #detected-text {
+      margin-top: 15px;
+      font-size: 18px;
+      white-space: pre-line;
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 15px;
+      border-radius: 6px;
+      min-height: 60px;
+    }
+
+    #camera-section {
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    #video {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    #capture-btn {
+      background-color: #28a745;
+    }
+
+    #stop-camera-btn {
+      background-color: #dc3545;
+    }
+
+    #copy-btn, #speak-btn {
+      margin-top: 10px;
+      margin-right: 10px;
+      background-color: #6c757d;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Braille Translation</h1>
+
+  <section>
+    <h2>Upload Image or Use Camera</h2>
+    <input type="file" id="image-input" accept="image/*" />
+    <button id="detect-btn" disabled>Detect Braille</button>
+
+    <div id="camera-section">
+      <video id="video" autoplay playsinline></video><br/>
+      <button id="start-camera-btn">Start Camera</button>
+      <button id="capture-btn" disabled>Capture from Camera</button>
+      <button id="stop-camera-btn" disabled>Stop Camera</button>
+    </div>
+  </section>
+
+  <section id="output-image-section" style="display: none;">
+    <h2>Detected Image</h2>
+    <img id="detected-image" alt="Detected Output Image" />
+  </section>
+
+  <section id="output-text-section" style="display: none;">
+    <h2>Detected Text</h2>
+    <div id="detected-text">Detected text will appear here...</div>
+    <button id="copy-btn">📋 Copy Text</button>
+    <button id="speak-btn">🔊 Play Audio</button>
+  </section>
+
+  <script>
+    const imageInput = document.getElementById('image-input');
+    const detectBtn = document.getElementById('detect-btn');
+    const detectedImage = document.getElementById('detected-image');
+    const detectedText = document.getElementById('detected-text');
+    const video = document.getElementById('video');
+    const startCameraBtn = document.getElementById('start-camera-btn');
+    const captureBtn = document.getElementById('capture-btn');
+    const stopCameraBtn = document.getElementById('stop-camera-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const speakBtn = document.getElementById('speak-btn');
+    const outputImageSection = document.getElementById('output-image-section');
+    const outputTextSection = document.getElementById('output-text-section');
+
+    let selectedFile = null;
+    let stream = null;
+
+    imageInput.addEventListener('change', () => {
+      if (imageInput.files.length > 0) {
+        selectedFile = imageInput.files[0];
+        detectBtn.disabled = false;
+        detectedImage.src = "";
+        detectedText.textContent = "Detected text will appear here...";
+        outputImageSection.style.display = 'none';
+        outputTextSection.style.display = 'none';
+        stopCamera();
+      } else {
+        selectedFile = null;
+        detectBtn.disabled = true;
+      }
+    });
+
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: "environment" } }
+        });
+      } catch (err) {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+      video.srcObject = stream;
+      imageInput.disabled = true;
+      detectBtn.disabled = true;
+      captureBtn.disabled = false;
+      stopCameraBtn.disabled = false;
+      selectedFile = null;
+      detectedImage.src = "";
+      detectedText.textContent = "Detected text will appear here...";
+      outputImageSection.style.display = 'none';
+      outputTextSection.style.display = 'none';
+    }
+
+    function stopCamera() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+      imageInput.disabled = false;
+      detectBtn.disabled = !selectedFile;
+      captureBtn.disabled = true;
+      stopCameraBtn.disabled = true;
+    }
+
+    startCameraBtn.addEventListener('click', async () => {
+      await startCamera();
+    });
+
+    stopCameraBtn.addEventListener('click', () => {
+      stopCamera();
+    });
+
+    captureBtn.addEventListener('click', () => {
+      if (!stream) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(blob => {
+        selectedFile = new File([blob], "captured.jpg", { type: "image/jpeg" });
+        detectBtn.disabled = false;
+        detectBtn.click(); // Auto-detect after capture
+      }, 'image/jpeg');
+    });
+
+    detectBtn.addEventListener('click', () => {
+      if (!selectedFile) return;
+
+      detectBtn.disabled = true;
+      detectBtn.textContent = "Detecting...";
+
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+
+      fetch('/detect', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert(data.error);
+          detectedImage.src = "";
+          detectedText.textContent = "";
+          outputImageSection.style.display = 'none';
+          outputTextSection.style.display = 'none';
+        } else {
+          detectedImage.src = data.detected_image;
+          detectedText.textContent = data.detected_text_rows.join('\n');
+          outputImageSection.style.display = 'block';
+          outputTextSection.style.display = 'block';
+        }
+      })
+      .catch(err => {
+        alert("Error: " + err.message);
+      })
+      .finally(() => {
+        detectBtn.disabled = false;
+        detectBtn.textContent = "Detect Braille";
+      });
+    });
+
+    copyBtn.addEventListener('click', () => {
+      const text = detectedText.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Text copied to clipboard!");
+      });
+    });
+
+    speakBtn.addEventListener('click', () => {
+      const text = detectedText.textContent;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      window.speechSynthesis.speak(utterance);
+    });
+  </script>
+
+</body>
+</html>
