@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: braille-dots-detection
+    env: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt && pip install ultralytics
+    startCommand: python app.py
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    autoDeploy: true
