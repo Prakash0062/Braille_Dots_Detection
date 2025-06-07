@@ -14,12 +14,6 @@
       color: black;
     }
 
-    @keyframes gradientBG {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
     h1, h2 {
       text-align: center;
       color: black;
@@ -101,195 +95,187 @@
 </head>
 <body>
 
-  <h1>Braille Translation</h1>
+<h1>Braille Translation</h1>
 
-    <section>
-      <h2>Upload Image or Use Camera</h2>
-      <input type="file" id="image-input" accept="image/*" />
-      <label for="confidence-slider" style="color: white; margin-left: 10px;">Confidence: <span id="confidence-value">0.25</span></label>
-      <input type="range" id="confidence-slider" min="0" max="1" step="0.01" value="0.25" style="vertical-align: middle; margin-left: 10px; width: 150px;" />
-      <button id="detect-btn" disabled>Detect Braille</button>
+<section>
+  <h2>Upload Image or Use Camera</h2>
+  <input type="file" id="image-input" accept="image/*" />
+  <label for="confidence-slider">Confidence: <span id="confidence-value">0.25</span></label>
+  <input type="range" id="confidence-slider" min="0" max="1" step="0.01" value="0.25" style="vertical-align: middle; margin-left: 10px; width: 150px;" />
+  <button id="detect-btn" disabled>Detect Braille</button>
 
-      <div id="camera-section">
-        <video id="video" autoplay playsinline></video><br/>
-        <button id="start-camera-btn">Start Camera</button>
-        <button id="capture-btn" disabled>Capture from Camera</button>
-        <button id="stop-camera-btn" disabled>Stop Camera</button>
-      </div>
-    </section>
+  <div id="camera-section">
+    <video id="video" autoplay playsinline></video><br/>
+    <button id="start-camera-btn">Start Camera</button>
+    <button id="capture-btn" disabled>Capture from Camera</button>
+    <button id="stop-camera-btn" disabled>Stop Camera</button>
+  </div>
+</section>
 
-  <section id="output-image-section" style="display: none;">
-    <h2>Detected Image</h2>
-    <img id="detected-image" alt="Detected Output Image" />
-  </section>
+<section id="output-image-section" style="display: none;">
+  <h2>Detected Image</h2>
+  <img id="detected-image" alt="Detected Output Image" />
+</section>
 
-  <section id="output-text-section" style="display: none;">
-    <h2>Detected Text</h2>
-    <div id="detected-text" style="color: black;">Detected text will appear here...</div>
-    <button id="copy-btn">📋 Copy Text</button>
-    <button id="speak-btn">🔊 Play Audio</button>
-  </section>
+<section id="output-text-section" style="display: none;">
+  <h2>Detected Text</h2>
+  <div id="detected-text">Detected text will appear here...</div>
+  <button id="copy-btn">📋 Copy Text</button>
+  <button id="speak-btn">🔊 Play Audio</button>
+</section>
 
-  <script>
-    const imageInput = document.getElementById('image-input');
-    const detectBtn = document.getElementById('detect-btn');
-    const detectedImage = document.getElementById('detected-image');
-    const detectedText = document.getElementById('detected-text');
-    const video = document.getElementById('video');
-    const startCameraBtn = document.getElementById('start-camera-btn');
-    const captureBtn = document.getElementById('capture-btn');
-    const stopCameraBtn = document.getElementById('stop-camera-btn');
-    const copyBtn = document.getElementById('copy-btn');
-    const speakBtn = document.getElementById('speak-btn');
-    const outputImageSection = document.getElementById('output-image-section');
-    const outputTextSection = document.getElementById('output-text-section');
+<script>
+const imageInput = document.getElementById('image-input');
+const detectBtn = document.getElementById('detect-btn');
+const detectedImage = document.getElementById('detected-image');
+const detectedText = document.getElementById('detected-text');
+const video = document.getElementById('video');
+const startCameraBtn = document.getElementById('start-camera-btn');
+const captureBtn = document.getElementById('capture-btn');
+const stopCameraBtn = document.getElementById('stop-camera-btn');
+const copyBtn = document.getElementById('copy-btn');
+const speakBtn = document.getElementById('speak-btn');
+const outputImageSection = document.getElementById('output-image-section');
+const outputTextSection = document.getElementById('output-text-section');
+let selectedFile = null;
+let stream = null;
 
-    let selectedFile = null;
-    let stream = null;
+imageInput.addEventListener('change', () => {
+  if (imageInput.files.length > 0) {
+    selectedFile = imageInput.files[0];
+    detectBtn.disabled = false;
+    detectedImage.src = "";
+    detectedText.textContent = "Detected text will appear here...";
+    outputImageSection.style.display = 'none';
+    outputTextSection.style.display = 'none';
+    stopCamera();
+  } else {
+    selectedFile = null;
+    detectBtn.disabled = true;
+  }
+});
 
-    imageInput.addEventListener('change', () => {
-      if (imageInput.files.length > 0) {
-        selectedFile = imageInput.files[0];
-        detectBtn.disabled = false;
-        detectedImage.src = "";
-        detectedText.textContent = "Detected text will appear here...";
-        outputImageSection.style.display = 'none';
-        outputTextSection.style.display = 'none';
-        stopCamera();
-      } else {
-        selectedFile = null;
-        detectBtn.disabled = true;
-      }
-    });
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } });
+  } catch (err) {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  }
+  video.srcObject = stream;
+  imageInput.disabled = true;
+  detectBtn.disabled = true;
+  captureBtn.disabled = false;
+  stopCameraBtn.disabled = false;
+  selectedFile = null;
+  detectedImage.src = "";
+  detectedText.textContent = "Detected text will appear here...";
+  outputImageSection.style.display = 'none';
+  outputTextSection.style.display = 'none';
+}
 
-    async function startCamera() {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { exact: "environment" } }
-        });
-      } catch (err) {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      }
-      video.srcObject = stream;
-      imageInput.disabled = true;
-      detectBtn.disabled = true;
-      captureBtn.disabled = false;
-      stopCameraBtn.disabled = false;
-      selectedFile = null;
+function stopCamera() {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+  video.srcObject = null;
+  imageInput.disabled = false;
+  detectBtn.disabled = !selectedFile;
+  captureBtn.disabled = true;
+  stopCameraBtn.disabled = true;
+}
+
+startCameraBtn.addEventListener('click', async () => {
+  await startCamera();
+});
+
+stopCameraBtn.addEventListener('click', () => {
+  stopCamera();
+});
+
+captureBtn.addEventListener('click', () => {
+  if (!stream) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  canvas.toBlob(blob => {
+    selectedFile = new File([blob], "captured.jpg", { type: "image/jpeg" });
+    detectBtn.disabled = false;
+    detectBtn.click();
+  }, 'image/jpeg');
+});
+
+detectBtn.addEventListener('click', () => {
+  if (!selectedFile) return;
+  detectBtn.disabled = true;
+  detectBtn.textContent = "Detecting...";
+
+  const formData = new FormData();
+  formData.append('image', selectedFile);
+  formData.append('confidence', document.getElementById('confidence-slider').value);
+
+  fetch('/detect', {
+    method: 'POST',
+    body: formData
+  })
+  .then(async res => {
+    const contentType = res.headers.get("content-type") || "";
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error("Server error: " + errText);
+    }
+    if (!contentType.includes("application/json")) {
+      const raw = await res.text();
+      throw new Error("Expected JSON but got:\n\n" + raw);
+    }
+    return res.json();
+  })
+  .then(data => {
+    if (data.error) {
+      alert(data.error);
       detectedImage.src = "";
-      detectedText.textContent = "Detected text will appear here...";
+      detectedText.textContent = "";
       outputImageSection.style.display = 'none';
       outputTextSection.style.display = 'none';
+    } else {
+      detectedImage.src = data.detected_image;
+      detectedText.textContent = data.detected_text_rows.join('\n');
+      outputImageSection.style.display = 'block';
+      outputTextSection.style.display = 'block';
     }
+  })
+  .catch(err => {
+    console.error("Error:", err);
+    alert("Error: " + err.message);
+    detectedImage.src = "";
+    detectedText.textContent = "";
+    outputImageSection.style.display = 'none';
+    outputTextSection.style.display = 'none';
+  })
+  .finally(() => {
+    detectBtn.disabled = false;
+    detectBtn.textContent = "Detect Braille";
+  });
+});
 
-    function stopCamera() {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-      }
-      video.srcObject = null;
-      imageInput.disabled = false;
-      detectBtn.disabled = !selectedFile;
-      captureBtn.disabled = true;
-      stopCameraBtn.disabled = true;
-    }
+copyBtn.addEventListener('click', () => {
+  navigator.clipboard.writeText(detectedText.textContent).then(() => {
+    alert("Text copied to clipboard!");
+  });
+});
 
-    startCameraBtn.addEventListener('click', async () => {
-      await startCamera();
-    });
+speakBtn.addEventListener('click', () => {
+  const utterance = new SpeechSynthesisUtterance(detectedText.textContent);
+  utterance.lang = 'en-US';
+  window.speechSynthesis.speak(utterance);
+});
 
-    stopCameraBtn.addEventListener('click', () => {
-      stopCamera();
-    });
-
-    captureBtn.addEventListener('click', () => {
-      if (!stream) return;
-
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      canvas.toBlob(blob => {
-        selectedFile = new File([blob], "captured.jpg", { type: "image/jpeg" });
-        detectBtn.disabled = false;
-        detectBtn.click(); // Auto-detect after capture
-      }, 'image/jpeg');
-    });
-
-    detectBtn.addEventListener('click', () => {
-      if (!selectedFile) return;
-
-      detectBtn.disabled = true;
-      detectBtn.textContent = "Detecting...";
-
-      const formData = new FormData();
-      formData.append('image', selectedFile);
-      const confidenceValue = document.getElementById('confidence-slider').value;
-      formData.append('confidence', confidenceValue);
-
-      fetch('/detect', {
-        method: 'POST',
-        body: formData
-      })
-      .then(res => res.text())
-      .then(text => {
-        console.log("Raw response text:", text);
-        try {
-          const data = JSON.parse(text);
-          if (data.error) {
-            alert(data.error);
-            detectedImage.src = "";
-            detectedText.textContent = "";
-            outputImageSection.style.display = 'none';
-            outputTextSection.style.display = 'none';
-          } else {
-            detectedImage.src = data.detected_image;
-            detectedText.textContent = data.detected_text_rows.join('\n');
-            outputImageSection.style.display = 'block';
-            outputTextSection.style.display = 'block';
-          }
-        } catch (e) {
-          alert("Failed to parse JSON response: " + e.message);
-          detectedImage.src = "";
-          detectedText.textContent = "";
-          outputImageSection.style.display = 'none';
-          outputTextSection.style.display = 'none';
-        }
-      })
-      .catch(err => {
-        alert("Error: " + err.message);
-      })
-      .finally(() => {
-        detectBtn.disabled = false;
-        detectBtn.textContent = "Detect Braille";
-      });
-    });
-
-    copyBtn.addEventListener('click', () => {
-      const text = detectedText.textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        alert("Text copied to clipboard!");
-      });
-    });
-
-    speakBtn.addEventListener('click', () => {
-      const text = detectedText.textContent;
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      window.speechSynthesis.speak(utterance);
-    });
-  </script>
-
-  <script>
-    const confidenceSlider = document.getElementById('confidence-slider');
-    const confidenceValueLabel = document.getElementById('confidence-value');
-
-    confidenceSlider.addEventListener('input', () => {
-      confidenceValueLabel.textContent = confidenceSlider.value;
-    });
-  </script>
+document.getElementById('confidence-slider').addEventListener('input', () => {
+  document.getElementById('confidence-value').textContent = document.getElementById('confidence-slider').value;
+});
+</script>
 
 </body>
 </html>
