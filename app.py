@@ -10,7 +10,7 @@ import logging
 app = Flask(__name__)
 
 # Load model once at startup
-model = YOLO(r"C:\Users\ASUS\Desktop\yolo app - Copy - Copy\best.pt")
+model = YOLO(r"best.pt")
 
 # Fuse model layers once to optimize (if your version supports it)
 # This can reduce overhead during inference
