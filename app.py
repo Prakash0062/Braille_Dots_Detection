@@ -6,30 +6,23 @@ from PIL import Image
 from ultralytics import YOLO
 from flask import Flask, request, jsonify, render_template
 import logging
+import os
 
+# Init
 app = Flask(__name__)
+model = YOLO("best.pt")  # Adjust path if needed in deployment
 
-# Load model once at startup
-model = YOLO(r"best.pt")
+# Logger
+logging.basicConfig(level=logging.DEBUG)
 
-# Fuse model layers once to optimize (if your version supports it)
-# This can reduce overhead during inference
-try:
-    model.model.fuse()
-    logging.info("Model fused successfully at startup.")
-except Exception as e:
-    logging.warning(f"Model fusion failed or not supported: {e}")
-
+# Braille detection function
 def detect_braille(img_bytes, conf_threshold=0.25):
-    # Open image and resize to 640x640 (adjust size if needed)
     img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
-    img = img.resize((640, 640))
     img_np = np.array(img)
 
-    # Run detection
     results = model(img_np, conf=conf_threshold)
-
     detections = []
+
     for result in results:
         for box in result.boxes:
             x1, y1, x2, y2 = box.xyxy[0].int().tolist()
@@ -48,14 +41,10 @@ def detect_braille(img_bytes, conf_threshold=0.25):
     if not detections:
         return "", []
 
-    # Sort detections by vertical position
+    # Group detections into rows
     detections.sort(key=lambda d: d['y_center'])
-
-    # Group into rows manually
-    row_thresh = 20  # Adjust this based on average line spacing
-    rows = []
-    current_row = []
-    last_y = -100
+    row_thresh = 20
+    rows, current_row, last_y = [], [], -100
 
     for det in detections:
         y = det['y_center']
@@ -66,67 +55,57 @@ def detect_braille(img_bytes, conf_threshold=0.25):
             last_y = y
         else:
             current_row.append(det)
-            last_y = (last_y + y) // 2  # smooth the row height
+            last_y = (last_y + y) // 2
 
     if current_row:
         rows.append(current_row)
 
-    # Sort each row left to right
     detected_text_rows = []
     for row in rows:
         sorted_row = sorted(row, key=lambda d: d['x_center'])
         row_labels = [d['label'] for d in sorted_row]
         detected_text_rows.append(''.join(row_labels))
 
-    # Draw boxes and labels on image
-    colors = [
-        (0, 255, 0), (0, 0, 255), (255, 0, 0),
-        (0, 255, 255), (255, 0, 255), (255, 255, 0),
-        (128, 0, 128), (0, 128, 128)
-    ]
-    for idx, det in enumerate(detections):
+    # Draw boxes
+    for det in detections:
         x1, y1, x2, y2 = det['box']
-        conf = det['confidence']
         label = det['label']
-        color = colors[idx % len(colors)]
+        color = (0, 255, 0)
         cv2.rectangle(img_np, (x1, y1), (x2, y2), color, 2)
-        cv2.putText(img_np, f'{label} {conf}', (x1, y1 - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        cv2.putText(img_np, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
-    # Encode image to base64
     _, buffer = cv2.imencode('.jpg', cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR))
     img_str = base64.b64encode(buffer).decode('utf-8')
 
     return img_str, detected_text_rows
 
+# Routes
 @app.route('/')
 def index():
     return render_template('index.html')
-
-logging.basicConfig(level=logging.DEBUG)
 
 @app.route('/detect', methods=['POST'])
 def detect():
     logging.debug(f"Received /detect request with files: {request.files} and form: {request.form}")
     if 'image' not in request.files:
-        logging.error("No image file uploaded in request")
+        logging.error("No image file uploaded")
         return jsonify({'error': 'No image file uploaded'}), 400
 
-    image_file = request.files['image']
-    image_bytes = image_file.read()
-
-    conf_threshold = request.form.get('confidence', default=0.25, type=float)
-
     try:
+        image_file = request.files['image']
+        image_bytes = image_file.read()
+        conf_threshold = request.form.get('confidence', default=0.25, type=float)
+
         detected_image, detected_text_rows = detect_braille(image_bytes, conf_threshold)
-        logging.debug("Detection successful, returning response")
         return jsonify({
-            'detected_image': f'data:image/jpeg;base64,{detected_image}',
+            'detected_image': f"data:image/jpeg;base64,{detected_image}",
             'detected_text_rows': detected_text_rows
         })
     except Exception as e:
         logging.exception("Exception during detection")
         return jsonify({'error': str(e)}), 500
 
+# Start
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
