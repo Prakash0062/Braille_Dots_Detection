@@ -5,14 +5,28 @@ import cv2
 from PIL import Image
 from ultralytics import YOLO
 from flask import Flask, request, jsonify, render_template
+import logging
 
 app = Flask(__name__)
-model = YOLO(r"best.pt")
+
+# Load model once at startup
+model = YOLO(r"C:\Users\ASUS\Desktop\yolo app - Copy - Copy\best.pt")
+
+# Fuse model layers once to optimize (if your version supports it)
+# This can reduce overhead during inference
+try:
+    model.model.fuse()
+    logging.info("Model fused successfully at startup.")
+except Exception as e:
+    logging.warning(f"Model fusion failed or not supported: {e}")
 
 def detect_braille(img_bytes, conf_threshold=0.25):
+    # Open image and resize to 640x640 (adjust size if needed)
     img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+    img = img.resize((640, 640))
     img_np = np.array(img)
 
+    # Run detection
     results = model(img_np, conf=conf_threshold)
 
     detections = []
@@ -34,10 +48,10 @@ def detect_braille(img_bytes, conf_threshold=0.25):
     if not detections:
         return "", []
 
-    # Step 1: Sort detections by vertical position
+    # Sort detections by vertical position
     detections.sort(key=lambda d: d['y_center'])
 
-    # Step 2: Group into rows manually
+    # Group into rows manually
     row_thresh = 20  # Adjust this based on average line spacing
     rows = []
     current_row = []
@@ -57,14 +71,14 @@ def detect_braille(img_bytes, conf_threshold=0.25):
     if current_row:
         rows.append(current_row)
 
-    # Step 3: Sort each row left to right
+    # Sort each row left to right
     detected_text_rows = []
     for row in rows:
         sorted_row = sorted(row, key=lambda d: d['x_center'])
         row_labels = [d['label'] for d in sorted_row]
         detected_text_rows.append(''.join(row_labels))
 
-    # Step 4: Draw boxes and labels
+    # Draw boxes and labels on image
     colors = [
         (0, 255, 0), (0, 0, 255), (255, 0, 0),
         (0, 255, 255), (255, 0, 255), (255, 255, 0),
@@ -76,8 +90,10 @@ def detect_braille(img_bytes, conf_threshold=0.25):
         label = det['label']
         color = colors[idx % len(colors)]
         cv2.rectangle(img_np, (x1, y1), (x2, y2), color, 2)
-        cv2.putText(img_np, f'{label} {conf}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        cv2.putText(img_np, f'{label} {conf}', (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
+    # Encode image to base64
     _, buffer = cv2.imencode('.jpg', cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR))
     img_str = base64.b64encode(buffer).decode('utf-8')
 
@@ -86,8 +102,6 @@ def detect_braille(img_bytes, conf_threshold=0.25):
 @app.route('/')
 def index():
     return render_template('index.html')
-
-import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -105,7 +119,7 @@ def detect():
 
     try:
         detected_image, detected_text_rows = detect_braille(image_bytes, conf_threshold)
-        logging.debug(f"Detection successful, returning response")
+        logging.debug("Detection successful, returning response")
         return jsonify({
             'detected_image': f'data:image/jpeg;base64,{detected_image}',
             'detected_text_rows': detected_text_rows
@@ -115,5 +129,4 @@ def detect():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
-
+    app.run(debug=True)
