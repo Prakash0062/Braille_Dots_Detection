@@ -5,53 +5,16 @@ import cv2
 from PIL import Image
 from ultralytics import YOLO
 from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS
-import logging
-import os
-import time
 
-# Initialize Flask app
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB file size limit
+model = YOLO(r"best.pt")
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+def detect_braille(img_bytes, conf_threshold=0.25):
+    img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+    img_np = np.array(img)
 
-# Model loading with optimizations
-def load_model():
-    try:
-        import torch
-        torch.set_grad_enabled(False)  # Disable gradients for inference
-        
-        # Load with reduced memory footprint
-        model = YOLO("best.pt", task='detect')
-        
-        # Optimize model
-        model.fuse()  # Fuse conv and bn layers
-        model.eval()  # Set to evaluation mode
-        
-        # Warmup run
-        dummy_img = np.zeros((640, 640, 3), dtype=np.uint8)
-        _ = model(dummy_img, verbose=False)
-        
-        return model
-    except Exception as e:
-        logging.error(f"Model loading failed: {str(e)}")
-        raise
+    results = model(img_np, conf=conf_threshold)
 
-# Global model variable
-try:
-    model = load_model()
-    logging.info("Model loaded successfully")
-except Exception as e:
-    logging.error(f"Failed to load model: {str(e)}")
-    model = None
-
-def process_detections(results):
     detections = []
     for result in results:
         for box in result.boxes:
@@ -67,15 +30,18 @@ def process_detections(results):
                 'x_center': x_center,
                 'y_center': y_center
             })
-    return detections
 
-def group_into_rows(detections):
     if not detections:
-        return []
-    
+        return "", []
+
+    # Step 1: Sort detections by vertical position
     detections.sort(key=lambda d: d['y_center'])
-    row_thresh = 20
-    rows, current_row, last_y = [], [], -100
+
+    # Step 2: Group into rows manually
+    row_thresh = 20  # Adjust this based on average line spacing
+    rows = []
+    current_row = []
+    last_y = -100
 
     for det in detections:
         y = det['y_center']
@@ -86,81 +52,67 @@ def group_into_rows(detections):
             last_y = y
         else:
             current_row.append(det)
-            last_y = (last_y + y) // 2
+            last_y = (last_y + y) // 2  # smooth the row height
 
     if current_row:
         rows.append(current_row)
-    
-    return rows
 
-def draw_detections(img_np, detections):
-    for det in detections:
+    # Step 3: Sort each row left to right
+    detected_text_rows = []
+    for row in rows:
+        sorted_row = sorted(row, key=lambda d: d['x_center'])
+        row_labels = [d['label'] for d in sorted_row]
+        detected_text_rows.append(''.join(row_labels))
+
+    # Step 4: Draw boxes and labels
+    colors = [
+        (0, 255, 0), (0, 0, 255), (255, 0, 0),
+        (0, 255, 255), (255, 0, 255), (255, 255, 0),
+        (128, 0, 128), (0, 128, 128)
+    ]
+    for idx, det in enumerate(detections):
         x1, y1, x2, y2 = det['box']
+        conf = det['confidence']
         label = det['label']
-        color = (0, 255, 0)
+        color = colors[idx % len(colors)]
         cv2.rectangle(img_np, (x1, y1), (x2, y2), color, 2)
-        cv2.putText(img_np, label, (x1, y1 - 10), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+        cv2.putText(img_np, f'{label} {conf}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+    _, buffer = cv2.imencode('.jpg', cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR))
+    img_str = base64.b64encode(buffer).decode('utf-8')
+
+    return img_str, detected_text_rows
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
 @app.route('/detect', methods=['POST'])
 def detect():
-    if not model:
-        return jsonify({'error': 'Model not available'}), 503
-
+    logging.debug(f"Received /detect request with files: {request.files} and form: {request.form}")
     if 'image' not in request.files:
+        logging.error("No image file uploaded in request")
         return jsonify({'error': 'No image file uploaded'}), 400
 
-    try:
-        start_time = time.time()
-        image_file = request.files['image']
-        image_bytes = image_file.read()
-        
-        # Validate image
-        img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-        img_np = np.array(img)
-        
-        # Resize if too large (keep aspect ratio)
-        h, w = img_np.shape[:2]
-        if max(h, w) > 1024:
-            scale = 1024 / max(h, w)
-            new_h, new_w = int(h * scale), int(w * scale)
-            img_np = cv2.resize(img_np, (new_w, new_h))
-        
-        # Process with timeout
-        conf_threshold = min(max(float(request.form.get('confidence', 0.25)), 0, 1)
-        results = model(img_np, conf=conf_threshold, verbose=False)
-        
-        # Process results
-        detections = process_detections(results)
-        rows = group_into_rows(detections)
-        
-        detected_text_rows = []
-        for row in rows:
-            sorted_row = sorted(row, key=lambda d: d['x_center'])
-            row_labels = [d['label'] for d in sorted_row]
-            detected_text_rows.append(''.join(row_labels))
-        
-        # Draw detections
-        draw_detections(img_np, detections)
-        
-        # Encode result image
-        _, buffer = cv2.imencode('.jpg', cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR))
-        img_str = base64.b64encode(buffer).decode('utf-8')
-        
-        logging.info(f"Detection completed in {time.time()-start_time:.2f}s")
-        return jsonify({
-            'detected_image': f"data:image/jpeg;base64,{img_str}",
-            'detected_text_rows': detected_text_rows or ["No braille detected"]
-        })
+    image_file = request.files['image']
+    image_bytes = image_file.read()
 
+    conf_threshold = request.form.get('confidence', default=0.25, type=float)
+
+    try:
+        detected_image, detected_text_rows = detect_braille(image_bytes, conf_threshold)
+        logging.debug(f"Detection successful, returning response")
+        return jsonify({
+            'detected_image': f'data:image/jpeg;base64,{detected_image}',
+            'detected_text_rows': detected_text_rows
+        })
     except Exception as e:
-        logging.error(f"Detection error: {str(e)}")
+        logging.exception("Exception during detection")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, threaded=True)
+    app.run(debug=True)
