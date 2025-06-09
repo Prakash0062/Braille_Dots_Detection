@@ -1,42 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Braille Detection</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --bg-light: #f6f6f6;
+            --bg-highlight: #e8f4ff;
+            --font-size-base: 18px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-light);
+            margin: 0;
+            padding: 0;
+            font-size: var(--font-size-base);
+        }
+
+        .container {
+            width: 100%;
+            min-height: 100vh;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            color: #333;
+        }
+
+        form {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        input[type="file"] {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        input[type="submit"] {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        input[type="submit"]:hover {
+            background: var(--primary-hover);
+        }
+
+        .output-section {
+            text-align: center;
+        }
+
+        .output-section img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        .detected-text {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: var(--bg-highlight);
+            padding: 20px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+        }
+
+        /* Responsive Styling */
+        @media (max-width: 768px) {
+            h2 {
+                font-size: 1.6rem;
+            }
+
+            input[type="submit"] {
+                width: 100%;
+                font-size: 1.2rem;
+                padding: 15px;
+            }
+
+            .detected-text {
+                font-size: 1rem;
+                padding: 15px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>Braille Detection</h1>
-        <form id="upload-form">
-            <label for="image-input">Select an image to detect:</label>
-            <input type="file" id="image-input" name="image" accept="image/*" required />
-            <label for="confidence">Confidence threshold (0 to 1):</label>
-            <input type="number" id="confidence" name="confidence" min="0" max="1" step="0.01" value="0.25" />
-            <button type="submit">Detect</button>
+        <h2>Braille Dots Detection</h2>
+        <form id="upload-form" enctype="multipart/form-data">
+            <input type="file" name="image" required><br>
+            <input type="submit" value="Detect Braille">
         </form>
-        <div id="result" class="hidden">
-            <h2>Detected Image:</h2>
-            <img id="detected-image" alt="Detected Image" />
-            <h2>Detected Text:</h2>
-            <pre id="detected-text"></pre>
+
+        <div class="output-section" id="output">
+            <div id="image-output"></div>
+            <div class="detected-text" id="text-output"></div>
         </div>
-        <div id="error-message" class="error hidden"></div>
     </div>
+
     <script>
         const form = document.getElementById('upload-form');
-        const resultDiv = document.getElementById('result');
-        const detectedImage = document.getElementById('detected-image');
-        const detectedText = document.getElementById('detected-text');
-        const errorMessage = document.getElementById('error-message');
+        const imageOutput = document.getElementById('image-output');
+        const textOutput = document.getElementById('text-output');
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            errorMessage.classList.add('hidden');
-            resultDiv.classList.add('hidden');
-            detectedImage.src = '';
-            detectedText.textContent = '';
 
             const formData = new FormData(form);
 
@@ -47,29 +137,21 @@
                 });
 
                 if (!response.ok) {
-                    let errorText;
-                    try {
-                        const errorData = await response.json();
-                        errorText = errorData.error || 'Detection failed';
-                    } catch (e) {
-                        errorText = await response.text();
-                    }
-                    throw new Error(errorText);
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
                 }
 
-                let data;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    const text = await response.text();
-                    throw new Error('Invalid JSON response: ' + text);
+                const result = await response.json();
+
+                if (result.error) {
+                    textOutput.innerText = "Error: " + result.error;
+                    imageOutput.innerHTML = "";
+                } else {
+                    imageOutput.innerHTML = `<img src="${result.detected_image}" alt="Detected Image">`;
+                    textOutput.innerText = "Detected Braille:\n" + result.detected_text_rows.join('\n');
                 }
-                detectedImage.src = data.detected_image;
-                detectedText.textContent = data.detected_text_rows.join('\n');
-                resultDiv.classList.remove('hidden');
             } catch (error) {
-                errorMessage.textContent = error.message;
-                errorMessage.classList.remove('hidden');
+                textOutput.innerText = "Fetch error: " + error.message;
+                imageOutput.innerHTML = "";
             }
         });
     </script>
