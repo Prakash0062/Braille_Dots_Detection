@@ -1,151 +1,262 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Braille Translation</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 900px;
-      margin: 30px auto;
-      padding: 0 20px;
-      background: #f5f5f5;
-      color: #333;
+    :root {
+      --primary: #3498db;
+      --success: #2ecc71;
+      --danger: #e74c3c;
+      --gray: #95a5a6;
+      --dark: #2c3e50;
+      --light: #ecf0f1;
     }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f9f9f9;
+      color: #333;
+      line-height: 1.6;
+    }
+    
     h1, h2 {
       text-align: center;
-      color: #2c3e50;
+      color: var(--dark);
+      margin-bottom: 20px;
     }
+    
     section {
       margin-bottom: 30px;
-      padding: 20px;
+      padding: 25px;
       background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
     }
+    
+    .input-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    
     input[type="file"] {
-      display: block;
-      margin: 15px 0;
       width: 100%;
-    }
-    button {
-      padding: 10px 20px;
-      cursor: pointer;
-      background-color: #3498db;
-      border: none;
-      color: white;
+      padding: 10px;
+      border: 2px dashed #ddd;
       border-radius: 5px;
-      font-size: 16px;
-      margin: 5px;
-      transition: background-color 0.3s;
+      background: #fafafa;
     }
-    button:hover {
-      background-color: #2980b9;
-    }
-    button:disabled {
-      background-color: #95a5a6;
-      cursor: not-allowed;
-    }
-    #detected-image {
-      max-width: 100%;
-      border: 1px solid #ddd;
-      margin-top: 15px;
-      border-radius: 6px;
-      display: block;
-    }
-    #detected-text {
-      margin-top: 15px;
-      font-size: 18px;
-      white-space: pre-line;
-      background: #f9f9f9;
-      padding: 15px;
-      border-radius: 6px;
-      min-height: 60px;
-      border: 1px solid #eee;
-    }
-    #camera-section {
-      margin-top: 20px;
-      text-align: center;
-    }
-    #video {
-      width: 100%;
-      max-width: 400px;
-      border-radius: 6px;
-      border: 1px solid #ddd;
-      background: #000;
-    }
-    #capture-btn {
-      background-color: #2ecc71;
-    }
-    #capture-btn:hover {
-      background-color: #27ae60;
-    }
-    #stop-camera-btn {
-      background-color: #e74c3c;
-    }
-    #stop-camera-btn:hover {
-      background-color: #c0392b;
-    }
-    #copy-btn, #speak-btn {
-      background-color: #7f8c8d;
-    }
-    #copy-btn:hover, #speak-btn:hover {
-      background-color: #95a5a6;
-    }
+    
     .slider-container {
-      margin: 15px 0;
       display: flex;
       align-items: center;
+      gap: 15px;
+      margin: 20px 0;
     }
-    .slider-container label {
-      margin-right: 10px;
-      min-width: 100px;
-    }
+    
     input[type="range"] {
       flex-grow: 1;
+      height: 8px;
+      -webkit-appearance: none;
+      background: #ddd;
+      border-radius: 4px;
     }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--primary);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+    
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: var(--gray);
+      color: white;
+    }
+    
+    .btn:disabled {
+      background: #bdc3c7;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    
+    .btn:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-2px);
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    
+    #detected-image {
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid #eee;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: block;
+      margin: 0 auto;
+    }
+    
+    #detected-text {
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #eee;
+      font-size: 18px;
+      line-height: 1.8;
+      min-height: 100px;
+      white-space: pre-line;
+    }
+    
+    #video {
+      width: 100%;
+      max-width: 500px;
+      border-radius: 8px;
+      background: #000;
+      display: block;
+      margin: 0 auto 15px;
+    }
+    
     .status {
-      padding: 10px;
-      border-radius: 5px;
-      margin: 10px 0;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
       display: none;
     }
-    .error {
-      background-color: #ffdddd;
-      color: #d63031;
-      border: 1px solid #d63031;
-    }
-    .success {
-      background-color: #ddffdd;
+    
+    .status-success {
+      background: #d5f5e3;
       color: #27ae60;
-      border: 1px solid #27ae60;
+      border: 1px solid #2ecc71;
+    }
+    
+    .status-error {
+      background: #fadbd8;
+      color: #e74c3c;
+      border: 1px solid #e74c3c;
+    }
+    
+    .status-info {
+      background: #d6eaf8;
+      color: #2980b9;
+      border: 1px solid #3498db;
+    }
+    
+    .progress-container {
+      width: 100%;
+      background: #ecf0f1;
+      border-radius: 8px;
+      margin: 15px 0;
+      display: none;
+    }
+    
+    .progress-bar {
+      height: 10px;
+      background: var(--primary);
+      border-radius: 8px;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    
+    @media (max-width: 600px) {
+      section {
+        padding: 15px;
+      }
+      
+      .btn {
+        padding: 10px 15px;
+        font-size: 14px;
+      }
     }
   </style>
 </head>
 <body>
-
   <h1>Braille Translation</h1>
 
   <section>
     <h2>Upload Image or Use Camera</h2>
-    <input type="file" id="image-input" accept="image/*">
-
-    <div class="slider-container">
-      <label for="confidence-slider">Confidence:</label>
-      <input type="range" id="confidence-slider" min="0" max="1" step="0.01" value="0.25">
-      <span id="confidence-value" style="margin-left: 10px;">0.25</span>
+    <div class="input-group">
+      <label for="image-input">Select an image:</label>
+      <input type="file" id="image-input" accept="image/*">
     </div>
-
-    <button id="detect-btn" disabled>Detect Braille</button>
+    
+    <div class="slider-container">
+      <label for="confidence-slider">Confidence Threshold:</label>
+      <input type="range" id="confidence-slider" min="0" max="1" step="0.01" value="0.25">
+      <span id="confidence-value">0.25</span>
+    </div>
+    
+    <div class="btn-group">
+      <button id="detect-btn" class="btn btn-primary" disabled>
+        <span class="btn-icon">🔍</span>
+        <span class="btn-text">Detect Braille</span>
+      </button>
+    </div>
+    
     <div id="status-message" class="status"></div>
+    <div id="progress-container" class="progress-container">
+      <div id="progress-bar" class="progress-bar"></div>
+    </div>
 
     <div id="camera-section">
       <video id="video" autoplay playsinline></video>
-      <div>
-        <button id="start-camera-btn">Start Camera</button>
-        <button id="capture-btn" disabled>Capture from Camera</button>
-        <button id="stop-camera-btn" disabled>Stop Camera</button>
+      <div class="btn-group">
+        <button id="start-camera-btn" class="btn btn-primary">
+          <span class="btn-icon">📷</span>
+          <span class="btn-text">Start Camera</span>
+        </button>
+        <button id="capture-btn" class="btn btn-success" disabled>
+          <span class="btn-icon">⏺️</span>
+          <span class="btn-text">Capture</span>
+        </button>
+        <button id="stop-camera-btn" class="btn btn-danger" disabled>
+          <span class="btn-icon">⏹️</span>
+          <span class="btn-text">Stop</span>
+        </button>
       </div>
     </div>
   </section>
@@ -158,206 +269,249 @@
   <section id="output-text-section" style="display: none;">
     <h2>Detected Text</h2>
     <div id="detected-text">Detected text will appear here...</div>
-    <button id="copy-btn">📋 Copy Text</button>
-    <button id="speak-btn">🔊 Play Audio</button>
+    <div class="btn-group">
+      <button id="copy-btn" class="btn btn-secondary">
+        <span class="btn-icon">📋</span>
+        <span class="btn-text">Copy Text</span>
+      </button>
+      <button id="speak-btn" class="btn btn-secondary">
+        <span class="btn-icon">🔊</span>
+        <span class="btn-text">Play Audio</span>
+      </button>
+    </div>
   </section>
 
   <script>
-    const imageInput = document.getElementById('image-input');
-    const detectBtn = document.getElementById('detect-btn');
-    const detectedImage = document.getElementById('detected-image');
-    const detectedText = document.getElementById('detected-text');
-    const video = document.getElementById('video');
-    const startCameraBtn = document.getElementById('start-camera-btn');
-    const captureBtn = document.getElementById('capture-btn');
-    const stopCameraBtn = document.getElementById('stop-camera-btn');
-    const copyBtn = document.getElementById('copy-btn');
-    const speakBtn = document.getElementById('speak-btn');
-    const outputImageSection = document.getElementById('output-image-section');
-    const outputTextSection = document.getElementById('output-text-section');
-    const confidenceSlider = document.getElementById('confidence-slider');
-    const confidenceValue = document.getElementById('confidence-value');
-    const statusMessage = document.getElementById('status-message');
+    // DOM Elements
+    const elements = {
+      imageInput: document.getElementById('image-input'),
+      detectBtn: document.getElementById('detect-btn'),
+      detectedImage: document.getElementById('detected-image'),
+      detectedText: document.getElementById('detected-text'),
+      video: document.getElementById('video'),
+      startCameraBtn: document.getElementById('start-camera-btn'),
+      captureBtn: document.getElementById('capture-btn'),
+      stopCameraBtn: document.getElementById('stop-camera-btn'),
+      copyBtn: document.getElementById('copy-btn'),
+      speakBtn: document.getElementById('speak-btn'),
+      outputImageSection: document.getElementById('output-image-section'),
+      outputTextSection: document.getElementById('output-text-section'),
+      confidenceSlider: document.getElementById('confidence-slider'),
+      confidenceValue: document.getElementById('confidence-value'),
+      statusMessage: document.getElementById('status-message'),
+      progressContainer: document.getElementById('progress-container'),
+      progressBar: document.getElementById('progress-bar')
+    };
 
-    let selectedFile = null;
-    let stream = null;
+    // State variables
+    let state = {
+      selectedFile: null,
+      stream: null,
+      abortController: null,
+      progressInterval: null
+    };
 
-    imageInput.addEventListener('change', handleFileSelect);
-    confidenceSlider.addEventListener('input', () => {
-      confidenceValue.textContent = confidenceSlider.value;
-    });
-    detectBtn.addEventListener('click', detectBraille);
-    startCameraBtn.addEventListener('click', startCamera);
-    stopCameraBtn.addEventListener('click', stopCamera);
-    captureBtn.addEventListener('click', captureFromCamera);
-    copyBtn.addEventListener('click', copyText);
-    speakBtn.addEventListener('click', speakText);
+    // Event Listeners
+    elements.imageInput.addEventListener('change', handleFileSelect);
+    elements.confidenceSlider.addEventListener('input', updateConfidenceValue);
+    elements.detectBtn.addEventListener('click', detectBraille);
+    elements.startCameraBtn.addEventListener('click', startCamera);
+    elements.stopCameraBtn.addEventListener('click', stopCamera);
+    elements.captureBtn.addEventListener('click', captureFromCamera);
+    elements.copyBtn.addEventListener('click', copyText);
+    elements.speakBtn.addEventListener('click', speakText);
 
+    // Functions
     function handleFileSelect() {
-      if (imageInput.files.length > 0) {
-        selectedFile = imageInput.files[0];
-        detectBtn.disabled = false;
+      if (elements.imageInput.files.length > 0) {
+        state.selectedFile = elements.imageInput.files[0];
+        elements.detectBtn.disabled = false;
         resetOutput();
         stopCamera();
-        showStatus('File selected: ' + selectedFile.name, 'success');
+        showStatus(`File selected: ${state.selectedFile.name}`, 'success');
       } else {
-        selectedFile = null;
-        detectBtn.disabled = true;
+        state.selectedFile = null;
+        elements.detectBtn.disabled = true;
       }
     }
 
+    function updateConfidenceValue() {
+      elements.confidenceValue.textContent = elements.confidenceSlider.value;
+    }
+
     async function detectBraille() {
-      if (!selectedFile) return;
+      if (!state.selectedFile) return;
 
-      detectBtn.disabled = true;
-      detectBtn.textContent = "Detecting...";
-      showStatus("Processing image (this may take 30-60 seconds)...", 'success');
+      // Setup UI for detection
+      elements.detectBtn.disabled = true;
+      elements.detectBtn.querySelector('.btn-text').textContent = "Processing...";
+      showStatus("Processing image (may take 30-60 seconds)...", 'info');
       resetOutput();
+      showProgress();
 
+      // Prepare form data
       const formData = new FormData();
-      formData.append('image', selectedFile);
-      formData.append('confidence', confidenceSlider.value);
-
-      const controller = new AbortController();
-
-      const timeoutWarning = setTimeout(() => {
-        showStatus("Processing is taking longer than expected...", 'success');
-      }, 45000);
-
-      const timeoutAbort = setTimeout(() => {
-        controller.abort();
-      }, 60000);
+      formData.append('image', state.selectedFile);
+      formData.append('confidence', elements.confidenceSlider.value);
 
       try {
+        // Setup abort controller and timeout
+        state.abortController = new AbortController();
+        const timeoutId = setTimeout(() => {
+          showStatus("Still processing... this may take a while", 'info');
+        }, 30000);
+
+        // Start progress animation
+        let progress = 0;
+        state.progressInterval = setInterval(() => {
+          progress = Math.min(progress + Math.random() * 5, 90);
+          elements.progressBar.style.width = `${progress}%`;
+        }, 500);
+
+        // Make request
         const response = await fetch('/detect', {
           method: 'POST',
           body: formData,
-          signal: controller.signal
+          signal: state.abortController.signal
         });
 
-        clearTimeout(timeoutWarning);
-        clearTimeout(timeoutAbort);
+        // Cleanup
+        clearTimeout(timeoutId);
+        clearInterval(state.progressInterval);
+        elements.progressBar.style.width = '100%';
 
         if (!response.ok) {
-          const text = await response.text();
-          try {
-            const json = JSON.parse(text);
-            throw new Error(json.error || `Server error: ${response.status}`);
-          } catch {
-            throw new Error(text || `Server error: ${response.status}`);
-          }
+          const error = await response.json().catch(() => ({ error: response.statusText }));
+          throw new Error(error.error || `Server error: ${response.status}`);
         }
 
         const data = await response.json();
 
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
+        // Handle results
         if (data.detected_image) {
-          detectedImage.src = data.detected_image;
-          outputImageSection.style.display = 'block';
+          elements.detectedImage.src = data.detected_image;
+          elements.outputImageSection.style.display = 'block';
         }
 
-        detectedText.textContent = data.detected_text_rows?.join('\n') || "No braille detected";
-        outputTextSection.style.display = 'block';
-
+        elements.detectedText.textContent = data.detected_text_rows?.join('\n') || "No braille detected";
+        elements.outputTextSection.style.display = 'block';
+        
         showStatus("Detection completed successfully!", 'success');
 
       } catch (error) {
+        clearInterval(state.progressInterval);
+        hideProgress();
+        
         if (error.name === 'AbortError') {
-          showStatus("Processing timed out (60s limit)", 'error');
+          showStatus("Processing was aborted", 'error');
         } else {
           console.error("Detection error:", error);
-          showStatus(error.message, 'error');
-          detectedText.textContent = "Error: " + error.message;
-          outputTextSection.style.display = 'block';
+          showStatus(`Error: ${error.message}`, 'error');
+          elements.detectedText.textContent = `Error: ${error.message}`;
+          elements.outputTextSection.style.display = 'block';
         }
       } finally {
-        detectBtn.disabled = false;
-        detectBtn.textContent = "Detect Braille";
+        elements.detectBtn.disabled = false;
+        elements.detectBtn.querySelector('.btn-text').textContent = "Detect Braille";
+        setTimeout(hideProgress, 2000);
       }
     }
 
     async function startCamera() {
       try {
-        showStatus("Starting camera...", 'success');
-        stream = await navigator.mediaDevices.getUserMedia({
+        showStatus("Starting camera...", 'info');
+        state.stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { exact: "environment" } }
         }).catch(() => navigator.mediaDevices.getUserMedia({ video: true }));
-
-        video.srcObject = stream;
-        imageInput.disabled = true;
-        detectBtn.disabled = true;
-        captureBtn.disabled = false;
-        stopCameraBtn.disabled = false;
-        selectedFile = null;
+        
+        elements.video.srcObject = state.stream;
+        elements.imageInput.disabled = true;
+        elements.detectBtn.disabled = true;
+        elements.captureBtn.disabled = false;
+        elements.stopCameraBtn.disabled = false;
+        state.selectedFile = null;
         resetOutput();
-        showStatus("Camera ready", 'success');
+        showStatus("Camera ready - position over Braille text", 'success');
       } catch (error) {
         console.error("Camera error:", error);
-        showStatus("Could not access camera: " + error.message, 'error');
+        showStatus(`Camera error: ${error.message}`, 'error');
       }
     }
 
     function stopCamera() {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
+      if (state.stream) {
+        state.stream.getTracks().forEach(track => track.stop());
+        state.stream = null;
       }
-      video.srcObject = null;
-      imageInput.disabled = false;
-      detectBtn.disabled = !selectedFile;
-      captureBtn.disabled = true;
-      stopCameraBtn.disabled = true;
+      elements.video.srcObject = null;
+      elements.imageInput.disabled = false;
+      elements.detectBtn.disabled = !state.selectedFile;
+      elements.captureBtn.disabled = true;
+      elements.stopCameraBtn.disabled = true;
       showStatus("Camera stopped", 'success');
     }
 
     function captureFromCamera() {
-      if (!stream) return;
+      if (!state.stream) return;
 
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = elements.video.videoWidth;
+      canvas.height = elements.video.videoHeight;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(elements.video, 0, 0, canvas.width, canvas.height);
 
       canvas.toBlob(blob => {
-        selectedFile = new File([blob], "captured.jpg", { type: "image/jpeg" });
-        detectBtn.disabled = false;
+        state.selectedFile = new File([blob], "captured.jpg", { type: "image/jpeg" });
+        elements.detectBtn.disabled = false;
         showStatus("Image captured from camera", 'success');
         detectBraille();
-      }, 'image/jpeg');
+      }, 'image/jpeg', 0.9);
     }
 
     function copyText() {
-      navigator.clipboard.writeText(detectedText.textContent)
+      navigator.clipboard.writeText(elements.detectedText.textContent)
         .then(() => showStatus("Text copied to clipboard!", 'success'))
-        .catch(err => showStatus("Failed to copy text: " + err, 'error'));
+        .catch(err => showStatus(`Failed to copy: ${err}`, 'error'));
     }
 
     function speakText() {
-      const utterance = new SpeechSynthesisUtterance(detectedText.textContent);
+      const utterance = new SpeechSynthesisUtterance(elements.detectedText.textContent);
       utterance.lang = 'en-US';
       window.speechSynthesis.speak(utterance);
-      showStatus("Reading text aloud...", 'success');
+      showStatus("Reading text aloud...", 'info');
     }
 
     function resetOutput() {
-      detectedImage.src = "";
-      detectedText.textContent = "Detected text will appear here...";
-      outputImageSection.style.display = 'none';
-      outputTextSection.style.display = 'none';
+      elements.detectedImage.src = "";
+      elements.detectedText.textContent = "Detected text will appear here...";
+      elements.outputImageSection.style.display = 'none';
+      elements.outputTextSection.style.display = 'none';
     }
 
     function showStatus(message, type) {
-      statusMessage.textContent = message;
-      statusMessage.className = 'status ' + type;
-      statusMessage.style.display = 'block';
-      setTimeout(() => {
-        statusMessage.style.display = 'none';
-      }, 5000);
+      elements.statusMessage.textContent = message;
+      elements.statusMessage.className = `status status-${type}`;
+      elements.statusMessage.style.display = 'block';
+      
+      // Auto-hide success messages after 5 seconds
+      if (type === 'success') {
+        setTimeout(() => {
+          elements.statusMessage.style.display = 'none';
+        }, 5000);
+      }
     }
+
+    function showProgress() {
+      elements.progressContainer.style.display = 'block';
+      elements.progressBar.style.width = '0%';
+    }
+
+    function hideProgress() {
+      elements.progressContainer.style.display = 'none';
+    }
+
+    // Initialize
+    updateConfidenceValue();
   </script>
 </body>
 </html>
