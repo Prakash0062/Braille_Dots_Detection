@@ -6,7 +6,7 @@ opencv-python==4.9.0.80
 Pillow==10.2.0
 matplotlib==3.8.4
 Werkzeug==3.0.1
-tensorflow==2.15.0
+tensorflow==2.18.0
 ultralytics
 gunicorn
 flask-cors
