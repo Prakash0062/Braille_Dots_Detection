@@ -1,159 +1,270 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Braille Detection</title>
-    <style>
-        :root {
-            --primary-color: #007bff;
-            --primary-hover: #0056b3;
-            --bg-light: #f6f6f6;
-            --bg-highlight: #e8f4ff;
-            --font-size-base: 18px;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Braille Translation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 20px;
+      background: white;
+      color: black;
+    }
 
-        * {
-            box-sizing: border-box;
-        }
+    h1, h2 {
+      text-align: center;
+      color: black;
+    }
 
-        body {
-            font-family: Arial, sans-serif;
-            background-color: var(--bg-light);
-            margin: 0;
-            padding: 0;
-            font-size: var(--font-size-base);
-        }
+    section {
+      margin-bottom: 30px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      box-shadow: 0 0 10px #333;
+    }
 
-        .container {
-            width: 100%;
-            min-height: 100vh;
-            background: #fff;
-            padding: 20px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-        }
+    input[type="file"] {
+      display: block;
+      margin: 10px 0;
+    }
 
-        h2 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 2rem;
-            color: #333;
-        }
+    button {
+      padding: 8px 16px;
+      cursor: pointer;
+      background-color: #007bff;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      font-size: 16px;
+      margin-right: 5px;
+    }
 
-        form {
-            text-align: center;
-            margin-bottom: 30px;
-        }
+    button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
 
-        input[type="file"] {
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-        }
+    #detected-image {
+      max-width: 100%;
+      border: 1px solid #ccc;
+      margin-top: 15px;
+      border-radius: 6px;
+    }
 
-        input[type="submit"] {
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
+    #detected-text {
+      margin-top: 15px;
+      font-size: 18px;
+      white-space: pre-line;
+      background: rgba(255, 255, 255, 0.8);
+      color: black !important;
+      padding: 15px;
+      border-radius: 6px;
+      min-height: 60px;
+    }
 
-        input[type="submit"]:hover {
-            background: var(--primary-hover);
-        }
+    #camera-section {
+      margin-top: 15px;
+      text-align: center;
+    }
 
-        .output-section {
-            text-align: center;
-        }
+    #video {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
 
-        .output-section img {
-            max-width: 100%;
-            height: auto;
-            margin-top: 20px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-        }
+    #capture-btn {
+      background-color: #28a745;
+    }
 
-        .detected-text {
-            margin-top: 20px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            background: var(--bg-highlight);
-            padding: 20px;
-            border-radius: 8px;
-            white-space: pre-wrap;
-        }
+    #stop-camera-btn {
+      background-color: #dc3545;
+    }
 
-        /* Responsive Styling */
-        @media (max-width: 768px) {
-            h2 {
-                font-size: 1.6rem;
-            }
-
-            input[type="submit"] {
-                width: 100%;
-                font-size: 1.2rem;
-                padding: 15px;
-            }
-
-            .detected-text {
-                font-size: 1rem;
-                padding: 15px;
-            }
-        }
-    </style>
+    #copy-btn, #speak-btn {
+      margin-top: 10px;
+      margin-right: 10px;
+      background-color: #6c757d;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Braille Dots Detection</h2>
-        <form id="upload-form" enctype="multipart/form-data">
-            <input type="file" name="image" required><br>
-            <input type="submit" value="Detect Braille">
-        </form>
 
-        <div class="output-section" id="output">
-            <div id="image-output"></div>
-            <div class="detected-text" id="text-output"></div>
-        </div>
+  <h1>Braille Translation</h1>
+
+  <section>
+    <h2>Upload Image or Use Camera</h2>
+    <input type="file" id="image-input" accept="image/*" />
+    <label for="confidence-slider" style="color: white; margin-left: 10px;">Confidence: <span id="confidence-value">0.25</span></label>
+    <input type="range" id="confidence-slider" min="0" max="1" step="0.01" value="0.25" style="vertical-align: middle; margin-left: 10px; width: 150px;" />
+    <button id="detect-btn" disabled>Detect Braille</button>
+
+    <div id="camera-section">
+      <video id="video" autoplay playsinline></video><br/>
+      <button id="start-camera-btn">Start Camera</button>
+      <button id="capture-btn" disabled>Capture from Camera</button>
+      <button id="stop-camera-btn" disabled>Stop Camera</button>
     </div>
+  </section>
 
-    <script>
-        const form = document.getElementById('upload-form');
-        const imageOutput = document.getElementById('image-output');
-        const textOutput = document.getElementById('text-output');
+  <section id="output-image-section" style="display: none;">
+    <h2>Detected Image</h2>
+    <img id="detected-image" alt="Detected Output Image" />
+  </section>
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+  <section id="output-text-section" style="display: none;">
+    <h2>Detected Text</h2>
+    <div id="detected-text" style="color: black;">Detected text will appear here...</div>
+    <button id="copy-btn">📋 Copy Text</button>
+    <button id="speak-btn">🔊 Play Audio</button>
+  </section>
 
-            const formData = new FormData(form);
+  <script>
+    const imageInput = document.getElementById('image-input');
+    const detectBtn = document.getElementById('detect-btn');
+    const detectedImage = document.getElementById('detected-image');
+    const detectedText = document.getElementById('detected-text');
+    const video = document.getElementById('video');
+    const startCameraBtn = document.getElementById('start-camera-btn');
+    const captureBtn = document.getElementById('capture-btn');
+    const stopCameraBtn = document.getElementById('stop-camera-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const speakBtn = document.getElementById('speak-btn');
+    const outputImageSection = document.getElementById('output-image-section');
+    const outputTextSection = document.getElementById('output-text-section');
+    const confidenceSlider = document.getElementById('confidence-slider');
+    const confidenceValueLabel = document.getElementById('confidence-value');
 
-            try {
-                const response = await fetch('/detect', {
-                    method: 'POST',
-                    body: formData
-                });
+    let selectedFile = null;
+    let stream = null;
 
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
-                }
+    imageInput.addEventListener('change', () => {
+      if (imageInput.files.length > 0) {
+        selectedFile = imageInput.files[0];
+        detectBtn.disabled = false;
+        detectedImage.src = "";
+        detectedText.textContent = "Detected text will appear here...";
+        outputImageSection.style.display = 'none';
+        outputTextSection.style.display = 'none';
+        stopCamera();
+      } else {
+        selectedFile = null;
+        detectBtn.disabled = true;
+      }
+    });
 
-                const result = await response.json();
+    confidenceSlider.addEventListener('input', () => {
+      confidenceValueLabel.textContent = confidenceSlider.value;
+    });
 
-                if (result.error) {
-                    textOutput.innerText = "Error: " + result.error;
-                    imageOutput.innerHTML = "";
-                } else {
-                    imageOutput.innerHTML = `<img src="${result.detected_image}" alt="Detected Image">`;
-                    textOutput.innerText = "Detected Braille:\n" + result.detected_text_rows.join('\n');
-                }
-            } catch (error) {
-                textOutput.innerText = "Fetch error: " + error.message;
-                imageOutput.innerHTML = "";
-            }
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: "environment" } }
         });
-    </script>
+      } catch (err) {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+      video.srcObject = stream;
+      imageInput.disabled = true;
+      detectBtn.disabled = true;
+      captureBtn.disabled = false;
+      stopCameraBtn.disabled = false;
+      selectedFile = null;
+      detectedImage.src = "";
+      detectedText.textContent = "Detected text will appear here...";
+      outputImageSection.style.display = 'none';
+      outputTextSection.style.display = 'none';
+    }
+
+    function stopCamera() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+      imageInput.disabled = false;
+      detectBtn.disabled = !selectedFile;
+      captureBtn.disabled = true;
+      stopCameraBtn.disabled = true;
+    }
+
+    startCameraBtn.addEventListener('click', startCamera);
+    stopCameraBtn.addEventListener('click', stopCamera);
+
+    captureBtn.addEventListener('click', () => {
+      if (!stream) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(blob => {
+        selectedFile = new File([blob], "captured.jpg", { type: "image/jpeg" });
+        detectBtn.disabled = false;
+        detectBtn.click();
+      }, 'image/jpeg');
+    });
+
+    detectBtn.addEventListener('click', () => {
+      if (!selectedFile) return;
+
+      detectBtn.disabled = true;
+      detectBtn.textContent = "Detecting...";
+
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+      const confidenceValue = confidenceSlider.value;
+      formData.append('confidence', confidenceValue);
+
+      fetch('/detect', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())  // ✅ FIXED: using .json()
+      .then(data => {
+        if (data.error) {
+          alert(data.error);
+          detectedImage.src = "";
+          detectedText.textContent = "";
+          outputImageSection.style.display = 'none';
+          outputTextSection.style.display = 'none';
+        } else {
+          detectedImage.src = data.detected_image;
+          detectedText.textContent = data.detected_text_rows.join('\n');
+          outputImageSection.style.display = 'block';
+          outputTextSection.style.display = 'block';
+        }
+      })
+      .catch(err => {
+        alert("Error: " + err.message);
+      })
+      .finally(() => {
+        detectBtn.disabled = false;
+        detectBtn.textContent = "Detect Braille";
+      });
+    });
+
+    copyBtn.addEventListener('click', () => {
+      const text = detectedText.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Text copied to clipboard!");
+      });
+    });
+
+    speakBtn.addEventListener('click', () => {
+      const text = detectedText.textContent;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      window.speechSynthesis.speak(utterance);
+    });
+  </script>
 </body>
 </html>
